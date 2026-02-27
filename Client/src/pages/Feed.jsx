@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import api from "../api/axios";
-
+import Chat from "./Chat";
 function Feed({ user }) {
   const [posts, setPosts] = useState([]);
 
@@ -15,6 +15,7 @@ function Feed({ user }) {
 
   return (
     <div>
+      <Chat path = "/chat" currentUser={user} receiverId="69a153f1b91aa23793bc31fc" />
       <h2>Feed</h2>
 
       {posts.map((post) => (

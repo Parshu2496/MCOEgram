@@ -1,36 +1,7 @@
-// src/sockets.js
-
 import { io } from "socket.io-client";
 
-const SOCKET_URL = "http://localhost:5000";
+const socket = io("http://localhost:5000", {
+  autoConnect: false,
+});
 
-let socket = null;
-
-export const connectSocket = (token) => {
-  if (!socket) {
-    socket = io(SOCKET_URL, {
-      auth: {
-        token,
-      },
-    });
-
-    socket.on("connect", () => {
-      console.log("Connected to socket server");
-    });
-
-    socket.on("connect_error", (err) => {
-      console.error("Socket connection error:", err.message);
-    });
-  }
-
-  return socket;
-};
-
-export const getSocket = () => socket;
-
-export const disconnectSocket = () => {
-  if (socket) {
-    socket.disconnect();
-    socket = null;
-  }
-};
+export default socket;

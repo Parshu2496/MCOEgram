@@ -1,33 +1,44 @@
 import { GoogleLogin } from "@react-oauth/google";
-import axios from "axios";
+import { useState } from "react";
+import api from "../api/axios";
 
-function Login() {
+function Login({ setUser }) {
+  const [loading, setLoading] = useState(false);
+
   const handleSuccess = async (credentialResponse) => {
     try {
-      const res = await axios.post(
-        "http://localhost:5000/api/auth/google",
-        {
-          token: credentialResponse.credential,
-        }
-      );
+      setLoading(true);
 
-      console.log("JWT:", res.data.token);
-      console.log("User:", res.data.user);
+      const res = await api.post("/api/auth/google", {
+        token: credentialResponse.credential,
+      });
 
       localStorage.setItem("token", res.data.token);
+      console.log(res.data)
+      setUser(res.data.user);
 
     } catch (error) {
-      console.error(error.response.data);
+      console.error(
+        error.response?.data?.message || "Login failed"
+      );
+      alert("Login failed");
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <div>
+    <div style={{ textAlign: "center", marginTop: "100px" }}>
       <h2>Login to MCOEgram</h2>
-      <GoogleLogin
-        onSuccess={handleSuccess}
-        onError={() => console.log("Login Failed")}
-      />
+
+      {loading ? (
+        <p>Signing you in...</p>
+      ) : (
+        <GoogleLogin
+          onSuccess={handleSuccess}
+          onError={() => alert("Google Login Failed")}
+        />
+      )}
     </div>
   );
 }
