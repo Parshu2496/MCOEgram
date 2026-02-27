@@ -3,6 +3,7 @@ import api from "./api/axios";
 import Login from "./pages/Login";
 import Navbar from "./components/Navbar";
 import Profile from "./pages/Profile";
+import ChatsPage from "./pages/ChatPage";
 import Feed from "./pages/Feed";
 import socket from "./sockets";
 
@@ -54,6 +55,7 @@ function App() {
     <>
       <Navbar user={user} />
       <Feed user={user} />
+      <ChatsPage currentUser={user} />
     </>
   );
 }

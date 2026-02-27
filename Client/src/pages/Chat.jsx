@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import socket from "../sockets";
+import api from "../api/axios";
 
 function Chat({ currentUser, receiverId }) {
   const [message, setMessage] = useState("");
@@ -18,6 +19,14 @@ function Chat({ currentUser, receiverId }) {
 
   }, []);
 
+  useEffect(() => {
+  const fetchMessages = async () => {
+    const res = await api.get(`/api/chat/${receiverId}`);
+    setMessages(res.data);
+  };
+
+  fetchMessages();
+}, [receiverId]);
   const sendMessage = () => {
     if (!message.trim()) return;
 

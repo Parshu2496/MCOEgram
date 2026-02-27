@@ -1,27 +1,43 @@
 require("dotenv").config();
-const express = require('express')
-const cors = require('cors')
-const connectDB = require('./config/db')
-const app = express()
-const authRoutes = require("./Routes/authRoutes");
-const userRoutes = require("./Routes/userRoutes");
-const postRoutes = require("./Routes/postRoutes");
 const http = require("http");
 const { Server } = require("socket.io");
 const jwt = require("jsonwebtoken");
+const express = require('express')
+const cors = require('cors')
+const connectDB = require('./config/db')
+const chatRoutes = require("./Routes/chatRoutes");
+const app = express()
+connectDB();
+
+app.use(
+  cors({
+    origin: "http://localhost:5173",
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+  })
+);
+
+// 🔥 THIS IS THE IMPORTANT LINE
+app.options(/.*/, cors());
+const authRoutes = require("./Routes/authRoutes");
+const userRoutes = require("./Routes/userRoutes");
+const postRoutes = require("./Routes/postRoutes");
 const User = require("./Models/User");
 const Chat = require("./Models/Chat");
 const Message = require("./Models/Message");
 
-connectDB();
-
-app.use(cors());
 app.use(express.json())
 app.use("/api/posts", postRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/auth", authRoutes);
+app.use("/api/chat", chatRoutes);
 
 app.get('/', (req, res) => res.send('MOCEgram API Running'));
+app.use((err, req, res, next) => {
+  console.error("GLOBAL ERROR:", err);
+  res.status(500).json({ message: "Internal server error" });
+});
 const PORT = process.env.PORT || 5000;
 
 const server = http.createServer(app);

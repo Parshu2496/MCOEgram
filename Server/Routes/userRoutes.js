@@ -20,5 +20,17 @@ router.put("/update", protect, async (req, res) => {
     res.status(404).json({ message: "User not found" });
   }
 });
+router.get("/", protect, async (req, res) => {
+  try {
+    const users = await User.find(
+      { _id: { $ne: req.user._id } },   // exclude logged in user
+      "name email profilePic"           // select only needed fields
+    );
 
+    res.json(users);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Failed to fetch users" });
+  }
+});
 module.exports = router;
