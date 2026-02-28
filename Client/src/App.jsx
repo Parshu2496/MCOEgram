@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Routes, Route, Navigate } from "react-router-dom";
 import api from "./api/axios";
 import Login from "./pages/Login";
 import Navbar from "./components/Navbar";
@@ -11,27 +12,12 @@ function App() {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    if (user) {
-      socket.auth = {
-        token: localStorage.getItem("token"),
-      };
-
-      socket.connect();
-
-      socket.on("connect", () => {
-        console.log("Socket connected:", socket.id);
-      });
-
-      socket.on("connect_error", (err) => {
-        console.log("Socket error:", err.message);
-      });
+  const ProtectedRoute = ({ children }) => {
+    if (!user) {
+      return <Navigate to="/login" />;
     }
-
-    return () => {
-      socket.disconnect();
-    };
-  }, [user]);
+    return children;
+  };
 
   useEffect(() => {
     const checkUser = async () => {
@@ -48,15 +34,66 @@ function App() {
     checkUser();
   }, []);
 
-  if (loading) return <div>Loading...</div>;
-  if (!user) return <Login setUser={setUser} />;
+  useEffect(() => {
+    if (user) {
+      socket.auth = {
+        token: localStorage.getItem("token"),
+      };
 
-  return (
-    <>
-      <Navbar user={user} />
-      <Feed user={user} />
-      <ChatsPage currentUser={user} />
-    </>
-  );
+      socket.connect();
+    }
+
+    return () => {
+      socket.disconnect();
+    };
+  }, [user]);
+
+if (loading) return <div>Loading...</div>;
+
+return (
+  <>
+    {user && <Navbar />}
+
+    <Routes>
+      <Route
+        path="/login"
+        element={
+          user ? (
+            <Navigate to="/feed" />
+          ) : (
+            <Login setUser={setUser} />
+          )
+        }
+      />
+
+      <Route
+        path="/feed"
+        element={
+          user ? (
+            <Feed user={user} />
+          ) : (
+            <Navigate to="/login" />
+          )
+        }
+      />
+
+      <Route
+        path="/chats"
+        element={
+          user ? (
+            <ChatsPage user={user} />
+          ) : (
+            <Navigate to="/login" />
+          )
+        }
+      />
+
+      <Route
+        path="*"
+        element={<Navigate to={user ? "/feed" : "/login"} />}
+      />
+    </Routes>
+  </>
+);
 }
 export default App;

@@ -1,12 +1,13 @@
 require("dotenv").config();
 const http = require("http");
+const onlineUsers = new Map();
 const { Server } = require("socket.io");
 const jwt = require("jsonwebtoken");
-const express = require('express')
-const cors = require('cors')
-const connectDB = require('./config/db')
+const express = require("express");
+const cors = require("cors");
+const connectDB = require("./config/db");
 const chatRoutes = require("./Routes/chatRoutes");
-const app = express()
+const app = express();
 connectDB();
 
 app.use(
@@ -15,7 +16,7 @@ app.use(
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
-  })
+  }),
 );
 
 // 🔥 THIS IS THE IMPORTANT LINE
@@ -27,13 +28,13 @@ const User = require("./Models/User");
 const Chat = require("./Models/Chat");
 const Message = require("./Models/Message");
 
-app.use(express.json())
+app.use(express.json());
 app.use("/api/posts", postRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/auth", authRoutes);
 app.use("/api/chat", chatRoutes);
 
-app.get('/', (req, res) => res.send('MOCEgram API Running'));
+app.get("/", (req, res) => res.send("MOCEgram API Running"));
 app.use((err, req, res, next) => {
   console.error("GLOBAL ERROR:", err);
   res.status(500).json({ message: "Internal server error" });
@@ -45,8 +46,8 @@ const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
     origin: "http://localhost:5173",
-    methods: ["GET", "POST"]
-  }
+    methods: ["GET", "POST"],
+  },
 });
 
 io.use(async (socket, next) => {
@@ -71,40 +72,54 @@ io.on("connection", (socket) => {
   console.log("User connected:", socket.user.name);
   socket.join(socket.user._id.toString());
   socket.on("send_message", async ({ receiverId, text }) => {
+    try {
+      const userId = socket.user._id.toString();
 
-  try {
+      onlineUsers.set(userId, socket.id);
 
-    // 1️⃣ Find or create chat
-    let chat = await Chat.findOne({
-      participants: { $all: [socket.user._id, receiverId] }
-    });
+      console.log("User connected:", userId);
 
-    if (!chat) {
-      chat = await Chat.create({
-        participants: [socket.user._id, receiverId]
+      // Notify everyone
+      io.emit("user_online", userId);
+
+      // Send full list to newly connected user
+      socket.emit("online_users", Array.from(onlineUsers.keys()));
+
+      socket.on("disconnect", () => {
+        onlineUsers.delete(userId);
+        io.emit("user_offline", userId);
+        console.log("User disconnected:", userId);
       });
+
+      // 1️⃣ Find or create chat
+      let chat = await Chat.findOne({
+        participants: { $all: [socket.user._id, receiverId] },
+      });
+
+      if (!chat) {
+        chat = await Chat.create({
+          participants: [socket.user._id, receiverId],
+        });
+      }
+
+      // 2️⃣ Save message
+      const message = await Message.create({
+        chat: chat._id,
+        sender: socket.user._id,
+        text,
+      });
+
+      // 3️⃣ Emit to receiver
+      io.to(receiverId).emit("receive_message", {
+        chatId: chat._id,
+        sender: socket.user._id,
+        text,
+        createdAt: message.createdAt,
+      });
+    } catch (err) {
+      console.log(err);
     }
-
-    // 2️⃣ Save message
-    const message = await Message.create({
-      chat: chat._id,
-      sender: socket.user._id,
-      text
-    });
-
-    // 3️⃣ Emit to receiver
-    io.to(receiverId).emit("receive_message", {
-      chatId: chat._id,
-      sender: socket.user._id,
-      text,
-      createdAt: message.createdAt
-    });
-
-  } catch (err) {
-    console.log(err);
-  }
-
-});
+  });
 });
 
 server.listen(PORT, () => {

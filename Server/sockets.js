@@ -3,6 +3,21 @@ const jwt = require("jsonwebtoken");
 
 module.exports = function (server) {
   useEffect(() => {
+    socket.on("user_online", (userId) => {
+      setOnlineUsers((prev) => [...new Set([...prev, userId])]);
+    });
+
+    socket.on("user_offline", (userId) => {
+      setOnlineUsers((prev) => prev.filter((id) => id !== userId));
+    });
+
+    return () => {
+      socket.off("user_online");
+      socket.off("user_offline");
+    };
+  }, []);
+
+  useEffect(() => {
     const handleReceive = (data) => {
       setMessages((prev) => [...prev, data]);
     };
@@ -33,6 +48,13 @@ module.exports = function (server) {
 
   io.on("connection", (socket) => {
     socket.on("send_message", async ({ receiverId, text }) => {
+      if (!receiverId || !mongoose.Types.ObjectId.isValid(receiverId)) {
+        console.log("Invalid receiverId:", receiverId);
+        return;
+      }
+
+      if (!text?.trim()) return;
+      
       let chat = await Chat.findOne({
         participants: { $all: [socket.user._id, receiverId] },
       });
@@ -49,7 +71,6 @@ module.exports = function (server) {
         text,
       });
 
-      // 🔥 ADD THIS LINE
       await Chat.findByIdAndUpdate(chat._id, {
         updatedAt: new Date(),
       });
