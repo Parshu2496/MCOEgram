@@ -1,33 +1,10 @@
 const { Server } = require("socket.io");
 const jwt = require("jsonwebtoken");
+const mongoose = require("mongoose");
+const Chat = require("./models/Chat");
+const Message = require("./models/Message");
 
 module.exports = function (server) {
-  useEffect(() => {
-    socket.on("user_online", (userId) => {
-      setOnlineUsers((prev) => [...new Set([...prev, userId])]);
-    });
-
-    socket.on("user_offline", (userId) => {
-      setOnlineUsers((prev) => prev.filter((id) => id !== userId));
-    });
-
-    return () => {
-      socket.off("user_online");
-      socket.off("user_offline");
-    };
-  }, []);
-
-  useEffect(() => {
-    const handleReceive = (data) => {
-      setMessages((prev) => [...prev, data]);
-    };
-
-    socket.on("receive_message", handleReceive);
-
-    return () => {
-      socket.off("receive_message", handleReceive);
-    };
-  }, []);
   const io = new Server(server, {
     cors: {
       origin: "http://localhost:5173",
@@ -35,10 +12,12 @@ module.exports = function (server) {
     },
   });
 
+  // ================= AUTH MIDDLEWARE =================
   io.use((socket, next) => {
     try {
       const token = socket.handshake.auth.token;
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
       socket.userId = decoded.id;
       next();
     } catch (err) {
@@ -46,41 +25,87 @@ module.exports = function (server) {
     }
   });
 
+  // ================= CONNECTION =================
   io.on("connection", (socket) => {
+    console.log("User connected:", socket.userId);
+
+    // Join room = userId
+    socket.join(socket.userId);
+
+    // ================= SEND MESSAGE =================
     socket.on("send_message", async ({ receiverId, text }) => {
-      if (!receiverId || !mongoose.Types.ObjectId.isValid(receiverId)) {
-        console.log("Invalid receiverId:", receiverId);
-        return;
-      }
+      try {
+        if (!receiverId || !mongoose.Types.ObjectId.isValid(receiverId)) return;
 
-      if (!text?.trim()) return;
-      
-      let chat = await Chat.findOne({
-        participants: { $all: [socket.user._id, receiverId] },
-      });
+        if (!text?.trim()) return;
 
-      if (!chat) {
-        chat = await Chat.create({
-          participants: [socket.user._id, receiverId],
+        // Find or create chat
+        let chat = await Chat.findOne({
+          participants: { $all: [socket.userId, receiverId] },
         });
+
+        if (!chat) {
+          chat = await Chat.create({
+            participants: [socket.userId, receiverId],
+          });
+        }
+
+        // Save message
+        const message = await Message.create({
+          chat: chat._id,
+          sender: socket.userId,
+          text,
+          delivered: false,
+          seen: false,
+        });
+
+        // Send to receiver
+        io.to(receiverId).emit("receive_message", message);
+
+        // Notify sender message delivered
+        io.to(socket.userId).emit("message_delivered", {
+          messageId: message._id,
+        });
+      } catch (err) {
+        console.error(err);
       }
+    });
 
-      const message = await Message.create({
-        chat: chat._id,
-        sender: socket.user._id,
-        text,
-      });
+    // ================= CHAT OPENED (MARK SEEN) =================
+    socket.on("chat_opened", async ({ receiverId }) => {
+      try {
+        // Find unseen messages sent by receiver
+        const unseenMessages = await Message.find({
+          sender: receiverId,
+          chat: {
+            $in: await Chat.find({
+              participants: { $all: [socket.userId, receiverId] },
+            }).distinct("_id"),
+          },
+          seen: false,
+        });
 
-      await Chat.findByIdAndUpdate(chat._id, {
-        updatedAt: new Date(),
-      });
+        if (!unseenMessages.length) return;
 
-      io.to(receiverId).emit("receive_message", {
-        chatId: chat._id,
-        sender: socket.user._id,
-        text,
-        createdAt: message.createdAt,
-      });
+        const messageIds = unseenMessages.map((msg) => msg._id);
+
+        // Mark them seen
+        await Message.updateMany({ _id: { $in: messageIds } }, { seen: true });
+
+        // Emit seen event for each message
+        messageIds.forEach((id) => {
+          io.to(receiverId).emit("message_seen", {
+            messageId: id,
+          });
+        });
+      } catch (err) {
+        console.error(err);
+      }
+    });
+
+    // ================= DISCONNECT =================
+    socket.on("disconnect", () => {
+      console.log("User disconnected:", socket.userId);
     });
   });
 };

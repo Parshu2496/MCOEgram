@@ -71,6 +71,32 @@ io.use(async (socket, next) => {
 io.on("connection", (socket) => {
   console.log("User connected:", socket.user.name);
   socket.join(socket.user._id.toString());
+  socket.on("chat_opened", async ({ chatId }) => {
+    try {
+      const messages = await Message.find({
+        chat: chatId,
+        sender: { $ne: socket.user._id },
+        seen: false,
+      });
+
+      for (let msg of messages) {
+        msg.seen = true;
+        await msg.save();
+
+        // Notify original sender
+        io.to(msg.sender.toString()).emit("message_seen", {
+          messageId: msg._id,
+        });
+      }
+    } catch (err) {
+      console.error("Error marking seen:", err);
+    }
+  });
+  socket.on("message_seen", ({ messageId }) => {
+    setMessages((prev) =>
+      prev.map((msg) => (msg._id === messageId ? { ...msg, seen: true } : msg)),
+    );
+  });
   socket.on("send_message", async ({ receiverId, text }) => {
     try {
       const userId = socket.user._id.toString();
@@ -140,6 +166,19 @@ io.on("connection", (socket) => {
       }
 
       // Always emit to sender
+      // Always send message to receiver
+      if (receiverSocketId) {
+        io.to(receiverSocketId).emit("receive_message", payload);
+
+        // Tell sender it was delivered
+        socket.emit("message_delivered", {
+          messageId: message._id,
+        });
+      } else {
+        io.to(receiverId).emit("receive_message", payload);
+      }
+
+      // Only send once to sender (without re-emitting later)
       socket.emit("receive_message", payload);
     } catch (err) {
       console.log(err);

@@ -14,10 +14,28 @@ function ChatsPage({ user }) {
   const [onlineUsers, setOnlineUsers] = useState([]);
 
   useEffect(() => {
-  if (location.state?.selectedUser) {
-    setSelectedUser(location.state.selectedUser);
-  }
-}, [location.state]);
+    if (selectedUser) {
+      setChats((prevChats) =>
+        prevChats.map((chat) => {
+          const otherUser = chat.participants.find(
+            (p) => p._id !== user._id,
+          );
+
+          if (otherUser._id === selectedUser._id) {
+            return { ...chat, unreadCount: 0 };
+          }
+
+          return chat;
+        }),
+      );
+    }
+  }, [selectedUser]);
+
+  useEffect(() => {
+    if (location.state?.selectedUser) {
+      setSelectedUser(location.state.selectedUser);
+    }
+  }, [location.state]);
 
   useEffect(() => {
     socket.on("online_users", (users) => {
@@ -48,27 +66,30 @@ function ChatsPage({ user }) {
   };
 
   socket.on("receive_message", (data) => {
-    setChats((prevChats) => {
-      return prevChats
-        .map((chat) => {
-          if (chat._id === data.chatId) {
-            return {
-              ...chat,
-              lastMessage: {
-                text: data.text,
-                sender: data.sender,
-                createdAt: data.createdAt,
-              },
-            };
-          }
-          return chat;
-        })
-        .sort(
-          (a, b) =>
-            new Date(b.lastMessage?.createdAt || 0) -
-            new Date(a.lastMessage?.createdAt || 0),
-        );
-    });
+    setChats((prevChats) =>
+      prevChats.map((chat) => {
+        if (chat._id === data.chatId) {
+          const isCurrentChatOpen =
+            selectedUser &&
+            (selectedUser._id === data.sender ||
+              selectedUser._id === data.receiver);
+
+          return {
+            ...chat,
+            lastMessage: {
+              text: data.text,
+              createdAt: data.createdAt,
+            },
+            unreadCount:
+              data.sender !== user._id && !isCurrentChatOpen
+                ? chat.unreadCount + 1
+                : chat.unreadCount,
+          };
+        }
+
+        return chat;
+      }),
+    );
   });
 
   useEffect(() => {
@@ -88,7 +109,12 @@ function ChatsPage({ user }) {
   useEffect(() => {
     const fetchChats = async () => {
       const res = await api.get("/api/chat");
-      setChats(res.data);
+      setChats(
+        res.data.map((chat) => ({
+          ...chat,
+          unreadCount: 0,
+        })),
+      );
     };
 
     fetchChats();
@@ -139,7 +165,24 @@ function ChatsPage({ user }) {
                     setShowUsers(false);
                   }}
                 >
-                  {user.name}
+                  <strong>
+                    {user.name}
+
+                    {chat.unreadCount > 0 && (
+                      <span
+                        style={{
+                          backgroundColor: "#25D366",
+                          color: "white",
+                          borderRadius: "12px",
+                          padding: "2px 6px",
+                          fontSize: "12px",
+                          marginLeft: "6px",
+                        }}
+                      >
+                        {chat.unreadCount}
+                      </span>
+                    )}
+                  </strong>
                 </div>
               ))}
           </div>
@@ -159,7 +202,6 @@ function ChatsPage({ user }) {
               onClick={() => setSelectedUser(otherUser)}
             >
               <strong>
-                
                 <Link to={`/profile/${otherUser._id}`}>{otherUser.name}</Link>
                 {onlineUsers.some((id) => id === otherUser._id.toString()) && (
                   <span style={{ color: "green", marginLeft: "6px" }}>●</span>
@@ -177,7 +219,12 @@ function ChatsPage({ user }) {
       {/* Chat Window */}
       <div style={{ flex: 1 }}>
         {selectedUser && (
-          <Chat currentUser={user} selectedUserName = {selectedUser.name} selectedUserID= {selectedUser._id} receiverId={selectedUser._id} />
+          <Chat
+            currentUser={user}
+            selectedUserName={selectedUser.name}
+            selectedUserID={selectedUser._id}
+            receiverId={selectedUser._id}
+          />
         )}
       </div>
     </div>
