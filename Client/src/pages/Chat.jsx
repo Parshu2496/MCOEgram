@@ -1,11 +1,11 @@
 import { useEffect, useState } from "react";
 import socket from "../sockets";
 import { useRef } from "react";
-import {Link} from "react-router-dom";
+import { Link } from "react-router-dom";
 import api from "../api/axios";
 
-function Chat({ currentUser, selectedUserName ,selectedUserID, receiverId }) {
-    const messagesEndRef = useRef(null);
+function Chat({ currentUser, selectedUserName, selectedUserID, receiverId }) {
+  const messagesEndRef = useRef(null);
   const [message, setMessage] = useState("");
   const [messages, setMessages] = useState([]);
 
@@ -21,10 +21,10 @@ function Chat({ currentUser, selectedUserName ,selectedUserID, receiverId }) {
   }, []);
 
   useEffect(() => {
-  messagesEndRef.current?.scrollIntoView({
-    behavior: "smooth"
-  });
-}, [messages]);
+    messagesEndRef.current?.scrollIntoView({
+      behavior: "smooth",
+    });
+  }, [messages]);
 
   useEffect(() => {
     if (!receiverId) return;
@@ -58,91 +58,109 @@ function Chat({ currentUser, selectedUserName ,selectedUserID, receiverId }) {
 
     setMessage("");
   };
-
+  socket.on("message_delivered", ({ messageId }) => {
+    setMessages((prev) =>
+      prev.map((msg) =>
+        msg._id === messageId ? { ...msg, delivered: true } : msg,
+      ),
+    );
+  });
   return (
-      <div style={{
-    display: "flex",
-    flexDirection: "column",
-    height: "100vh",
-    backgroundColor: "#e5ddd5"
-  }}>
-
-    {/* Header */}
-    <div style={{
-      padding: "15px",
-      backgroundColor: "white",
-      borderBottom: "1px solid #ddd",
-      fontWeight: "bold"
-    }}>
-     
-      <Link to={`/profile/${selectedUserID}`}>{selectedUserName}</Link>
-      
-    </div>
-
-        <div
-      ref={messagesEndRef}
+    <div
       style={{
-        flex: 1,
-        overflowY: "auto",
-        padding: "15px",
         display: "flex",
         flexDirection: "column",
-        gap: "8px"
+        height: "100vh",
+        backgroundColor: "#e5ddd5",
       }}
     >
+      {/* Header */}
+      <div
+        style={{
+          padding: "15px",
+          backgroundColor: "white",
+          borderBottom: "1px solid #ddd",
+          fontWeight: "bold",
+        }}
+      >
+        <Link to={`/profile/${selectedUserID}`}>{selectedUserName}</Link>
+      </div>
+
+      <div
+        ref={messagesEndRef}
+        style={{
+          flex: 1,
+          overflowY: "auto",
+          padding: "15px",
+          display: "flex",
+          flexDirection: "column",
+          gap: "8px",
+        }}
+      >
         {messages.map((msg, index) => (
-        <div
-          key={index}
-          style={{
-            alignSelf:
-              msg.sender === currentUser._id
-                ? "flex-end"
-                : "flex-start",
-            backgroundColor:
-              msg.sender === currentUser._id
-                ? "#dcf8c6"
-                : "white",
-            padding: "8px 12px",
-            borderRadius: "12px",
-            maxWidth: "60%",
-            boxShadow: "0 1px 2px rgba(0,0,0,0.1)"
-          }}
-        >
-            {msg.text}
+          <div
+            key={msg._id}
+            style={{
+              alignSelf:
+                msg.sender === currentUser._id ? "flex-end" : "flex-start",
+              backgroundColor:
+                msg.sender === currentUser._id ? "#dcf8c6" : "white",
+              padding: "8px 12px",
+              borderRadius: "12px",
+              maxWidth: "60%",
+            }}
+          >
+            <div>{msg.text}</div>
+
+            {msg.sender === currentUser._id && (
+              <div
+                style={{
+                  fontSize: "12px",
+                  textAlign: "right",
+                }}
+              >
+                {msg.delivered ? "✓✓" : "✓"}
+              </div>
+            )}
           </div>
         ))}
       </div>
-        <div style={{
-      display: "flex",
-      padding: "10px",
-      backgroundColor: "white",
-      borderTop: "1px solid #ddd"
-    }}>
-      <input
-        value={message}
-        onChange={(e) => setMessage(e.target.value)}
-        placeholder="Type a message..."
+      <div
         style={{
-          flex: 1,
+          display: "flex",
           padding: "10px",
-          borderRadius: "20px",
-          border: "1px solid #ccc",
-          outline: "none"
+          backgroundColor: "white",
+          borderTop: "1px solid #ddd",
         }}
-      />
+      >
+        <input
+          value={message}
+          onChange={(e) => setMessage(e.target.value)}
+          placeholder="Type a message..."
+          style={{
+            flex: 1,
+            padding: "10px",
+            borderRadius: "20px",
+            border: "1px solid #ccc",
+            outline: "none",
+          }}
+        />
 
-            <button
-        onClick={sendMessage}
-        style={{
-          marginLeft: "10px",
-          padding: "8px 16px",
-          borderRadius: "20px",
-          border: "none",
-          backgroundColor: "#25D366",
-          color: "white",
-          cursor: "pointer"
-        }}
-      >Send</button></div>
+        <button
+          onClick={sendMessage}
+          style={{
+            marginLeft: "10px",
+            padding: "8px 16px",
+            borderRadius: "20px",
+            border: "none",
+            backgroundColor: "#25D366",
+            color: "white",
+            cursor: "pointer",
+          }}
+        >
+          Send
+        </button>
+      </div>
     </div>
   );
 }

@@ -9,7 +9,11 @@ const messageSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: "User",
   },
-  text: String
+  text: String,
+  delivered: {
+  type: Boolean,
+  default: false
+  },
 }, { timestamps: true });
 
 module.exports = mongoose.model("Message", messageSchema);

@@ -110,12 +110,37 @@ io.on("connection", (socket) => {
       });
 
       // 3️⃣ Emit to receiver
-      io.to(receiverId).emit("receive_message", {
+      const payload = {
+        _id: message._id,
         chatId: chat._id,
         sender: socket.user._id,
-        text,
+        text: message.text,
         createdAt: message.createdAt,
-      });
+        delivered: false,
+      };
+
+      const receiverSocketId = onlineUsers.get(receiverId);
+
+      if (receiverSocketId) {
+        // Receiver is online → mark delivered
+        message.delivered = true;
+        await message.save();
+
+        payload.delivered = true;
+
+        io.to(receiverSocketId).emit("receive_message", payload);
+
+        // Notify sender message was delivered
+        socket.emit("message_delivered", {
+          messageId: message._id,
+        });
+      } else {
+        // Receiver offline
+        io.to(receiverId).emit("receive_message", payload);
+      }
+
+      // Always emit to sender
+      socket.emit("receive_message", payload);
     } catch (err) {
       console.log(err);
     }
