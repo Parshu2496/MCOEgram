@@ -1,8 +1,8 @@
 const { Server } = require("socket.io");
 const jwt = require("jsonwebtoken");
 const mongoose = require("mongoose");
-const Chat = require("./models/Chat");
-const Message = require("./models/Message");
+const Chat = require("./Models/Chat");
+const Message = require("./Models/Message");
 
 module.exports = function (server) {
   const io = new Server(server, {
