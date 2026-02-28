@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
 import socket from "../sockets";
 import { useRef } from "react";
+import {Link} from "react-router-dom";
 import api from "../api/axios";
 
-function Chat({ currentUser, receiverId }) {
+function Chat({ currentUser, selectedUserName ,selectedUserID, receiverId }) {
     const messagesEndRef = useRef(null);
   const [message, setMessage] = useState("");
   const [messages, setMessages] = useState([]);
@@ -73,7 +74,9 @@ function Chat({ currentUser, receiverId }) {
       borderBottom: "1px solid #ddd",
       fontWeight: "bold"
     }}>
-      Chat
+     
+      <Link to={`/profile/${selectedUserID}`}>{selectedUserName}</Link>
+      
     </div>
 
         <div

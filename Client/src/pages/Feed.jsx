@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import api from "../api/axios";
 import Chat from "./Chat";
+import { Link } from "react-router-dom";
 function Feed({ user }) {
   const [posts, setPosts] = useState([]);
 
@@ -25,7 +26,9 @@ function Feed({ user }) {
               width="40"
               style={{ borderRadius: "50%" }}
             />
-            <strong>{post.user.name}</strong>
+            <strong>
+              <Link to={`/profile/${post.user._id}`}>{post.user.name}</Link>
+            </strong>
           </div>
 
           <img

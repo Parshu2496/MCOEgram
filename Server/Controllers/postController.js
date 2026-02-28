@@ -1,6 +1,6 @@
 const cloudinary = require("../config/cloudinary");
-const Post = require("../models/Post");
-const Comment = require("../models/Comment");
+const Post = require("../Models/Post");
+const Comment = require("../Models/Comment");
 
 exports.getPosts = async (req, res) => {
   try {

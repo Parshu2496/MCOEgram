@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 import api from "./api/axios";
 import Login from "./pages/Login";
+import { Link } from "react-router-dom";
 import Navbar from "./components/Navbar";
 import Profile from "./pages/Profile";
 import ChatsPage from "./pages/ChatPage";
@@ -48,52 +49,39 @@ function App() {
     };
   }, [user]);
 
-if (loading) return <div>Loading...</div>;
+  if (loading) return <div>Loading...</div>;
 
-return (
-  <>
-    {user && <Navbar />}
+  return (
+    <>
+      {user && <Navbar />}
 
-    <Routes>
+      <Routes>
+        <Route
+          path="/login"
+          element={user ? <Navigate to="/feed" /> : <Login setUser={setUser} />}
+        />
+
+        <Route
+          path="/feed"
+          element={user ? <Feed user={user} /> : <Navigate to="/login" />}
+        />
+
+        <Route
+          path="/chats"
+          element={user ? <ChatsPage user={user} /> : <Navigate to="/login" />}
+          />
+
+        <Route path="*" element={<Navigate to={user ? "/feed" : "/login"} />} />
+
       <Route
-        path="/login"
+        path="/profile/:userId"
         element={
-          user ? (
-            <Navigate to="/feed" />
-          ) : (
-            <Login setUser={setUser} />
-          )
+          user ? <Profile currentUser={user} /> : <Navigate to="/login" />
         }
-      />
+        />
+        </Routes>
 
-      <Route
-        path="/feed"
-        element={
-          user ? (
-            <Feed user={user} />
-          ) : (
-            <Navigate to="/login" />
-          )
-        }
-      />
-
-      <Route
-        path="/chats"
-        element={
-          user ? (
-            <ChatsPage user={user} />
-          ) : (
-            <Navigate to="/login" />
-          )
-        }
-      />
-
-      <Route
-        path="*"
-        element={<Navigate to={user ? "/feed" : "/login"} />}
-      />
-    </Routes>
-  </>
-);
+    </>
+  );
 }
 export default App;
