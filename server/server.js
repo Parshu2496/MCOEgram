@@ -6,7 +6,7 @@ const jwt = require("jsonwebtoken");
 const express = require("express");
 const cors = require("cors");
 const connectDB = require("./config/db");
-const chatRoutes = require("./Routes/chatRoutes");
+const chatRoutes = require("./routes/chatRoutes");
 const app = express();
 connectDB();
 
@@ -21,12 +21,12 @@ app.use(
 
 // 🔥 THIS IS THE IMPORTANT LINE
 app.options(/.*/, cors());
-const authRoutes = require("./Routes/authRoutes");
-const userRoutes = require("./Routes/userRoutes");
-const postRoutes = require("./Routes/postRoutes");
-const User = require("./Models/User");
-const Chat = require("./Models/Chat");
-const Message = require("./Models/Message");
+const authRoutes = require("./routes/authRoutes");
+const userRoutes = require("./routes/userRoutes");
+const postRoutes = require("./routes/postRoutes");
+const User = require("./models/User");
+const Chat = require("./models/Chat");
+const Message = require("./models/Message");
 
 app.use(express.json());
 app.use("/api/posts", postRoutes);
