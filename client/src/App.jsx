@@ -57,6 +57,11 @@ function App() {
       <Routes>
         <Route
           exact
+          path="/"
+          element={user ? <Feed user={user} /> : <Login setUser={setUser} />}
+        />
+        <Route
+          exact
           path="/feed"
           element={user ? <Feed user={user} /> : <Login setUser={setUser} />}
         />
