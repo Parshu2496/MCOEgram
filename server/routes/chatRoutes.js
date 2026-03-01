@@ -1,8 +1,8 @@
 const express = require("express");
 const router = express.Router();
-const { protect } = require("../Middlewares/authMiddleware");
-const Chat = require("../Models/Chat");
-const Message = require("../Models/Message");
+const { protect } = require("../middlewares/authMiddleware");
+const Chat = require("../models/Chat");
+const Message = require("../models/Message");
 const mongoose = require('mongoose')
 
 // Get messages between two users

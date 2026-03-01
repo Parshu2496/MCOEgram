@@ -1,8 +1,8 @@
 const express = require("express");
 const router = express.Router();
-const Post = require("../Models/Post");
-const { protect } = require("../Middlewares/authMiddleware");
-const upload = require("../Middlewares/uploadMiddleware");
+const Post = require("../models/Post");
+const { protect } = require("../middlewares/authMiddleware");
+const upload = require("../middlewares/uploadMiddleware");
 const { createPost, getPosts, toggleLike, addComment } =  require("../controllers/postController");
 
 router.get("/", protect, getPosts);
