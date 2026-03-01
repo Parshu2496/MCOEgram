@@ -1,42 +1,65 @@
-import { Link, useNavigate } from "react-router-dom";
+import { NavLink, useNavigate } from "react-router-dom";
+import socket from "../sockets";
 
 function Navbar() {
   const navigate = useNavigate();
+  const token = localStorage.getItem("token");
 
-  const logout = () => {
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
+  const handleLogout = () => {
+    localStorage.clear();
+    socket.disconnect();
     navigate("/login");
   };
 
   return (
-    <div style={{
-      display: "flex",
-      justifyContent: "space-between",
-      padding: "12px 20px",
-      backgroundColor: "#222",
-      color: "white"
-    }}>
-      <div>
-        <Link to="/feed" style={{ color: "white", marginRight: "15px" }}>
-          Feed
-        </Link>
+    <nav className="navbar navbar-expand-lg bg-dark border-bottom border-body" data-bs-theme="dark">
+      <div className="container-fluid">
+        <NavLink className="navbar-brand" to="/feed">
+          MCOEGRAM
+        </NavLink>
 
-        <Link to="/chats" style={{ color: "white" }}>
-          Chats
-        </Link>
+        <button
+          className="navbar-toggler"
+          type="button"
+          data-bs-toggle="collapse"
+          data-bs-target="#navbarSupportedContent"
+        >
+          <span className="navbar-toggler-icon"></span>
+        </button>
+
+        <div className="collapse navbar-collapse" id="navbarSupportedContent">
+          <ul className="navbar-nav me-auto mb-2 mb-lg-0">
+            <li className="nav-item">
+              <NavLink className="nav-link" to={localStorage.getItem('token')?"/feed":"/login"}>
+                <i className="fa-solid fa-house"></i> Home
+              </NavLink>
+            </li>
+
+            <li className="nav-item">
+              <NavLink className="nav-link" to={localStorage.getItem('token')?"/chats":"/login"}>
+                <i className="fa-solid fa-paper-plane"></i> Chat
+              </NavLink>
+            </li>
+
+            <li className="nav-item">
+              <NavLink className="nav-link" to={localStorage.getItem('token')?"/me":"/login"}>
+                <i className="fa-solid fa-user"></i> Profile
+              </NavLink>
+            </li>
+          </ul>
+
+          {!token ? (
+            <NavLink className="btn btn-primary" to="/login">
+              Login
+            </NavLink>
+          ) : (
+            <button className="btn btn-primary" onClick={handleLogout}>
+              Logout
+            </button>
+          )}
+        </div>
       </div>
-
-      <button onClick={logout} style={{
-        backgroundColor: "#ff4d4d",
-        border: "none",
-        padding: "6px 12px",
-        color: "white",
-        cursor: "pointer"
-      }}>
-        Logout
-      </button>
-    </div>
+    </nav>
   );
 }
 

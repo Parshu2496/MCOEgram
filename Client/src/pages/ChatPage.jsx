@@ -4,6 +4,7 @@ import { Link } from "react-router-dom";
 import Chat from "./Chat";
 import socket from "../sockets";
 import { useLocation } from "react-router-dom";
+import "../main.css"
 
 function ChatsPage({ user }) {
   const location = useLocation();
@@ -14,22 +15,34 @@ function ChatsPage({ user }) {
   const [onlineUsers, setOnlineUsers] = useState([]);
 
   useEffect(() => {
-    if (selectedUser) {
-      setChats((prevChats) =>
-        prevChats.map((chat) => {
-          const otherUser = chat.participants.find(
-            (p) => p._id !== user._id,
-          );
+  const handleReceive = (data) => {
+    setChats((prevChats) =>
+      prevChats.map((chat) => {
+        if (chat._id === data.chatId) {
+          const isCurrentChatOpen =
+            selectedUser && selectedUser._id === data.sender;
 
-          if (otherUser._id === selectedUser._id) {
-            return { ...chat, unreadCount: 0 };
-          }
+          return {
+            ...chat,
+            lastMessage: {
+              text: data.text,
+              createdAt: data.createdAt,
+            },
+            unreadCount:
+              data.sender !== user._id && !isCurrentChatOpen
+                ? chat.unreadCount + 1
+                : chat.unreadCount,
+          };
+        }
+        return chat;
+      })
+    );
+  };
 
-          return chat;
-        }),
-      );
-    }
-  }, [selectedUser]);
+  socket.on("receive_message", handleReceive);
+
+  return () => socket.off("receive_message", handleReceive);
+}, [selectedUser, user]);
 
   useEffect(() => {
     if (location.state?.selectedUser) {
@@ -168,7 +181,7 @@ function ChatsPage({ user }) {
                   <strong>
                     {user.name}
 
-                    {chat.unreadCount > 0 && (
+                    {chats.unreadCount > 0 && (
                       <span
                         style={{
                           backgroundColor: "#25D366",

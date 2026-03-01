@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 import api from "./api/axios";
 import Login from "./pages/Login";
-import { Link } from "react-router-dom";
 import Navbar from "./components/Navbar";
 import Profile from "./pages/Profile";
 import ChatsPage from "./pages/ChatPage";
@@ -57,30 +56,25 @@ function App() {
 
       <Routes>
         <Route
-          path="/login"
-          element={user ? <Navigate to="/feed" /> : <Login setUser={setUser} />}
-        />
-
-        <Route
+          exact
           path="/feed"
-          element={user ? <Feed user={user} /> : <Navigate to="/login" />}
+          element={user ? <Feed user={user} /> : <Login setUser={setUser} />}
         />
-
+        <Route exact path="/login" element={<Login setUser={setUser} />} />
         <Route
+          exact
           path="/chats"
-          element={user ? <ChatsPage user={user} /> : <Navigate to="/login" />}
-          />
-
-        <Route path="*" element={<Navigate to={user ? "/feed" : "/login"} />} />
-
-      <Route
-        path="/profile/:userId"
-        element={
-          user ? <Profile currentUser={user} /> : <Navigate to="/login" />
-        }
+          element={
+            user ? <ChatsPage user={user} /> : <Login setUser={setUser} />
+          }
         />
-        </Routes>
+        <Route
+          path="/profile/:userId"
+          element={<Profile currentUser={user} />}
+        />
 
+        <Route path="/me" element={<Profile currentUser={user} />} />
+      </Routes>
     </>
   );
 }

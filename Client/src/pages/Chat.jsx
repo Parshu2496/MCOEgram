@@ -1,12 +1,13 @@
 import { useEffect, useState, useRef } from "react";
 import socket from "../sockets";
-import { Link } from "react-router-dom";
+import { Link ,useNavigate} from "react-router-dom";
 import api from "../api/axios";
-
+import "../main.css";
 function Chat({ currentUser, selectedUserName, selectedUserID, receiverId }) {
   const messagesEndRef = useRef(null);
   const [message, setMessage] = useState("");
   const [messages, setMessages] = useState([]);
+  const history = useNavigate(null);
 
   // Format time
   const formatTime = (dateString) => {
@@ -17,7 +18,7 @@ function Chat({ currentUser, selectedUserName, selectedUserID, receiverId }) {
     });
   };
 
-  // ================= SOCKET LISTENERS =================
+  // SOCKET LISTENER
   useEffect(() => {
     const handleReceiveMessage = (data) => {
       setMessages((prev) => {
@@ -42,8 +43,6 @@ function Chat({ currentUser, selectedUserName, selectedUserID, receiverId }) {
         ),
       );
     };
-
-    socket.on("message_seen", handleSeen);
 
     socket.on("receive_message", handleReceiveMessage);
     socket.on("message_delivered", handleDelivered);
@@ -109,6 +108,8 @@ function Chat({ currentUser, selectedUserName, selectedUserID, receiverId }) {
   };
 
   return (
+    <>
+    
     <div
       style={{
         display: "flex",
@@ -231,6 +232,8 @@ function Chat({ currentUser, selectedUserName, selectedUserID, receiverId }) {
         </button>
       </div>
     </div>
+}
+    </>
   );
 }
 

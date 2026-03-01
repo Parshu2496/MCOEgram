@@ -10,14 +10,23 @@ router.post("/", protect, upload.single("image"), createPost);
 router.post("/:id/comment", protect, addComment);
 router.put("/:id/like", protect, toggleLike);
 
-router.get("/user/:userId", protect, async (req, res) => {
+router.get("/user/:userId", async (req, res) => {
   try {
     const posts = await Post.find({ user: req.params.userId })
+      .populate("user")
+      .populate({
+        path: "comments",
+        populate: {
+          path: "user",
+          model: "User",
+        },
+      })
       .sort({ createdAt: -1 });
 
     res.json(posts);
   } catch (err) {
-    res.status(500).json({ message: "Error fetching user posts" });
+    console.error(err);
+    res.status(500).json({ error: err.message });
   }
 });
 
